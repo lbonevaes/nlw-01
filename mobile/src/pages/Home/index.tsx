@@ -26,6 +26,17 @@ interface Cities {
   value: string
 }
 
+const getSelectStyle = (isDisabled: boolean): object => {
+  const backgroundColor = {
+    backgroundColor: isDisabled ? '#E6E6E6' : '#FFF',
+  }
+
+  return StyleSheet.create({
+    inputIOS: { ...baseSelectStyle.inputIOS, ...backgroundColor },
+    inputAndroid: { ...baseSelectStyle.inputAndroid, ...backgroundColor }
+  });
+}
+
 const Home = () => {
     const [ufs, setUfs] = useState<UFs[]>([]);
     const [cities, setCities] = useState<Cities[]>([]);
@@ -37,7 +48,7 @@ const Home = () => {
     const citySelectPlaceholder = { label: "Selecione sua cidade", value: '0' };
 
     useEffect(() => {
-      axios.get<IBGEUFResponse[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+      axios.get<IBGEUFResponse[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome')
         .then(response => {
           const ufs = response.data.map(uf => ({
             label: uf.nome,
@@ -86,15 +97,15 @@ const Home = () => {
                 <Select
                   placeholder={ufSelectPlaceholder}
                   value={selectedUf}
-                  style={styles.input}
+                  style={getSelectStyle(false)}
                   items={ufs}
                   onValueChange={value => setSelectedUf(value)}
                 />
-                
+
                 <Select
                   disabled={selectedUf === '0'}
                   placeholder={citySelectPlaceholder}
-                  style={styles.input}
+                  style={getSelectStyle(false)}
                   items={cities}
                   value={selectedCity}
                   onValueChange={value => setSelectedCity(value)}
@@ -145,17 +156,6 @@ const styles = StyleSheet.create({
 
   footer: {},
 
-  select: {},
-
-  input: {
-    height: 60,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    marginBottom: 8,
-    paddingHorizontal: 24,
-    fontSize: 16,
-  },
-
   button: {
     backgroundColor: '#34CB79',
     height: 60,
@@ -182,6 +182,27 @@ const styles = StyleSheet.create({
     fontFamily: 'Roboto_500Medium',
     fontSize: 16,
   }
+});
+
+const baseSelectStyle =  StyleSheet.create({
+  inputIOS: {
+    height: 60,
+    borderRadius: 10,
+    marginBottom: 8,
+    paddingHorizontal: 24,
+    fontSize: 16,
+    color: '#6C6C80',
+    fontFamily: 'Roboto_400Regular',
+  },
+  inputAndroid: {
+    height: 60,
+    borderRadius: 10,
+    marginBottom: 8,
+    paddingHorizontal: 24,
+    fontSize: 16,
+    color: '#6C6C80',
+    fontFamily: 'Roboto_400Regular',
+  },
 });
 
 export default Home;
