@@ -1,20 +1,73 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Feather as Icon } from '@expo/vector-icons';
-import { View, ImageBackground, Image, StyleSheet, Text } from 'react-native';
+import { View, ImageBackground, Image, StyleSheet, Text, Alert } from 'react-native';
 import { RectButton } from 'react-native-gesture-handler';
-import RNPickerSelect from 'react-native-picker-select';
+import Select from 'react-native-picker-select';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+
+interface IBGEUFResponse {
+  sigla: string,
+  nome: string
+}
+
+interface IBGECitiesResponse {
+  nome: string,
+  id: number
+}
+
+interface UFs {
+  label: string,
+  value: string
+}
+
+interface Cities {
+  label: string,
+  value: string
+}
 
 const Home = () => {
-    const [uf, setUf] = useState('');
-    const [city, setCity] = useState('');
+    const [ufs, setUfs] = useState<UFs[]>([]);
+    const [cities, setCities] = useState<Cities[]>([]);
+    const [selectedUf, setSelectedUf] = useState<string>('0');
+    const [selectedCity, setSelectedCity] = useState<string>('0');
     const navigation = useNavigation();
 
-    function hedleNavigateToPoints(){
-      navigation.navigate('Points', {
-        uf,
-        city
-      });
+    const ufSelectPlaceholder = { label: "Selecione seu estado (UF)", value: '0' };
+    const citySelectPlaceholder = { label: "Selecione sua cidade", value: '0' };
+
+    useEffect(() => {
+      axios.get<IBGEUFResponse[]>('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+        .then(response => {
+          const ufs = response.data.map(uf => ({
+            label: uf.nome,
+            value: uf.sigla
+          }));
+  
+          setUfs(ufs);
+        });
+    }, []);
+  
+    useEffect(() => {
+      if (selectedUf !== '0') {
+        axios.get<IBGECitiesResponse[]>(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`)
+          .then(response => {
+            const cities = response.data.map(city => ({
+              label: city.nome,
+              value: city.nome
+            }));
+  
+            setCities(cities);
+          });
+      }
+    }, [selectedUf]);
+
+    function handleNavigateToPoints() {
+      if ((selectedUf === '0') || (selectedCity === '0')) {
+        Alert.alert('Ooops...', 'Você deve selecionar um estado e uma cidade para prosseguir');
+      } else {
+        navigation.navigate('Points', { uf: selectedUf, city: selectedCity });
+      }
     }
 
     return (
@@ -30,27 +83,24 @@ const Home = () => {
             </View>
 
             <View style={styles.footer}>
-                <RNPickerSelect
-                    placeholder="Selecione o estado"
-                    value={uf}
-                    onValueChange={setUf}
-                    items={[
-                        { label: 'Amazonas', value: 'AM' },
-                        { label: 'São Paulo', value: 'SP' }
-                    ]}
+                <Select
+                  placeholder={ufSelectPlaceholder}
+                  value={selectedUf}
+                  style={styles.input}
+                  items={ufs}
+                  onValueChange={value => setSelectedUf(value)}
+                />
+                
+                <Select
+                  disabled={selectedUf === '0'}
+                  placeholder={citySelectPlaceholder}
+                  style={styles.input}
+                  items={cities}
+                  value={selectedCity}
+                  onValueChange={value => setSelectedCity(value)}
                 />
 
-                <RNPickerSelect
-                    placeholder="Seleciona a cidade"
-                    value={city}
-                    onValueChange={setCity}
-                    items={[
-                        { label: 'Guará', value: 'Guará' },
-                        { label: 'Ituverava', value: 'Ituverava' }
-                    ]}
-                />
-
-                <RectButton style={styles.button} onPress={hedleNavigateToPoints}>
+                <RectButton style={styles.button} onPress={handleNavigateToPoints}>
                     <View style={styles.buttonIcon}>
                         <Text>
                             <Icon name="arrow-right" color="#FFF" size={24} />
